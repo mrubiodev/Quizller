@@ -1,0 +1,47 @@
+version: '3.8'
+
+networks:
+  network-id:
+    name: ${PROJECT_NAME}-network
+
+services:
+  mysql:
+    image: mysql:8.0-debian
+    container_name: ${PROJECT_NAME}-db
+    #container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    volumes:
+      - "sql_quizzle:/var/lib/mysql"
+      - ./database/script.sql:/docker-entrypoint-initdb.d/script.sql
+    command: ["--init-file", "/docker-entrypoint-initdb.d/script.sql"]
+    restart: always
+    networks:
+      - network-id
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ${PROJECT_NAME}-php
+    ports:
+      - "${PHP_PORT}:80"
+    environment:
+      - DB_HOST=mysql
+      - DB_USERNAME=${MYSQL_USER}
+      - DB_PASSWORD=${MYSQL_PASSWORD}
+      - DB_DATABASE=${MYSQL_DATABASE}
+    networks:
+      - network-id
+    links:
+      - mysql
+
+volumes:
+  sql_quizzle:
+    external: true
+#docker volume create --driver local --opt type=none --opt o=bind --opt device=<patch>\sql_quizzle\ sql_quizzle
